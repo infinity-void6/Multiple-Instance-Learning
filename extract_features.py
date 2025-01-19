@@ -66,34 +66,3 @@ if __name__ == "__main__":
     for idx, segment in enumerate(list_segment):
         print(f"Segment {idx + 1} shape: {segment.shape}")
         break  # Only print the first segment for testing
-'''
-FIRST MODEL 
-________________
-from pytorchvideo.models.hub import x3d_s
-import torch
-
-device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model=x3d_s(pretrained=True).to(device)
-model.blocks[5]=torch.nn.Identity()
-
-def extract_features(segments,device,model=model):
-    """
-    Extract features from video segments using a pretrained model.
-
-    Args:
-        model (torch.nn.Module): Pretrained model.
-        segments (list): List of video segments (tensors).
-        device (torch.device): Device for computation.
-
-    Returns:
-        list: List of feature tensors.
-    """
-    features=[]
-    model.eval()
-    with torch.no_grad():
-        for segment in segments:
-            segment=segment.unsqueeze(0).to(device)
-            feature=model(segment)
-            features.append(feature.squeeze(0).cpu())
-    return features
-'''

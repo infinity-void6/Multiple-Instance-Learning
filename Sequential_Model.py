@@ -80,6 +80,8 @@ if __name__ == "__main__":
     # print(f'Max of output:{output.max()}')
     print(f'length of features : {len(features)}')
     print(f'length of output:  {len(output)}')
+#______________________________________________________________
+# the code below are models I tried but didn't perform well
 
 
 #------------------------------------------

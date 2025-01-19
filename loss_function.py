@@ -3,7 +3,7 @@
 import torch
 import torch.nn.functional as F
 
-def ranking_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5, k_ratio=0.2):
+def train_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5, k_ratio=0.2):
     """
     Ranking loss with Binary Cross-Entropy for weakly-supervised MIL anomaly detection.
     Handles label-output consistency with top-k selection.
@@ -37,7 +37,7 @@ def ranking_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8
 
     return total_loss / batch_size
 
-def ranking_loss_val(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5):
+def val_test_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5):
     """
     Ranking loss with Binary Cross-Entropy for weakly-supervised MIL anomaly detection.
     Uses video-level Binary Cross-Entropy instead of top-k selection.

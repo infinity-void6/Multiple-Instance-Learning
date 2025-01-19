@@ -68,8 +68,8 @@ val_loader = create_dataloader(val_normal_dir, val_anomalous_dir, batch_size, ma
 test_loader=create_dataloader(test_normal_dir,test_anomalous_dir,batch_size, max_segments_test)
 
 # Initiating loss_functions
-criterion=ranking_loss
-criterion_val = ranking_loss_val
+criterion= train_loss
+criterion_val = val_test_loss
 
 
 from sklearn.preprocessing import StandardScaler
@@ -422,14 +422,3 @@ for epoch in range(num_epochs):
 
         # Adjust the learning rate using the scheduler
         scheduler.step(avg_val_loss)
-
-
-
-# for epoch in range(num_epochs):
-#     print(f"Epoch {epoch + 1}/{num_epochs}")
-#     with warnings.catch_warnings():
-#         warnings.simplefilter("ignore", category=FutureWarning)
-#         avg_loss, best_threshold_accuracy, best_accuracy, roc_auc = train_epoch(
-#             train_loader, model, optimizer, criterion, device, scaler, batch_size
-#         )
-#         print(f"Epoch {epoch + 1}: Loss = {avg_loss:.4f}, Best Threshold (Accuracy) = {best_threshold_accuracy:.4f}, Best Accuracy = {best_accuracy:.4f}, ROC AUC = {roc_auc:.4f}")

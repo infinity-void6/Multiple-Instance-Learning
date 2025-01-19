@@ -3,48 +3,66 @@
 import torch
 import torch.nn.functional as F
 
-def ranking_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5, margin=1.0):
+def ranking_loss(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5, k_ratio=0.2):
     """
-    Updated Ranking loss for weakly-supervised MIL anomaly detection.
+    Ranking loss with Binary Cross-Entropy for weakly-supervised MIL anomaly detection.
+    Handles label-output consistency with top-k selection.
     """
     num_segments = scores.shape[0] // batch_size  # Segments per video
     total_loss = torch.tensor(0.0, requires_grad=True, device=scores.device)
 
     for i in range(batch_size):
         video_scores = scores[i * num_segments : (i + 1) * num_segments]
-        video_label = labels[i].item()  # Extract the scalar value
+        video_label = labels[i].float()  # Single video-level label
 
-        # Compute max scores
-        if video_scores.numel() == 0:  # Handle empty video_scores
-            max_anomalous = torch.tensor(float('-inf'), device=scores.device)
-            max_normal = torch.tensor(float('-inf'), device=scores.device)
-        elif video_label == 0:  # Anomalous video
-            max_anomalous = video_scores.max()
-            max_normal = torch.tensor(float("-inf"), device=scores.device)
-        elif video_label == 1:  # Normal video
-            max_anomalous = torch.tensor(float("-inf"), device=scores.device)
-            max_normal = video_scores.max()
-        else:
-            raise ValueError(f"Invalid video_label: {video_label}")
+        # Compute feature magnitudes
+        feature_magnitudes = torch.norm(video_scores, p=2, dim=-1)
 
-        # Ranking loss
-        if max_anomalous != float("-inf") and max_normal != float("-inf"):
-            rank_loss = F.relu(margin - max_anomalous + max_normal)
-        else:
-            rank_loss = torch.tensor(0.0, device=scores.device)
+        # Top-k selection
+        k = max(1, int(len(feature_magnitudes) * k_ratio))  # Select top k% of snippets
+        top_k_features, _ = torch.topk(feature_magnitudes, k)
 
-        # Sparsity and Smoothness losses
+        # Compute BCE loss for the mean of top-k features
+        mean_score = top_k_features.mean()
+        bce_loss = F.binary_cross_entropy_with_logits(mean_score, video_label)
+
+        # Sparsity and Smoothness
         sparsity_loss = lamda_sparsity * torch.sum(torch.sigmoid(video_scores))
         smoothness_loss = lamda_smooth * torch.sum(
             (torch.sigmoid(video_scores[1:]) - torch.sigmoid(video_scores[:-1])) ** 2
         )
 
-        total_loss = total_loss + rank_loss + sparsity_loss + smoothness_loss
+        # Combine all components
+        total_loss = total_loss + bce_loss + sparsity_loss + smoothness_loss
 
     return total_loss / batch_size
 
-if __name__ == "__main__":
-    scores = torch.rand(16, requires_grad=True)
-    labels = torch.tensor([0, 1, 1, 0])
-    loss = ranking_loss(scores, labels, batch_size=4)
-    print(f"Loss: {loss}, Requires Grad: {loss.requires_grad}")
+def ranking_loss_val(scores, labels, batch_size, lamda_sparsity=8e-5, lamda_smooth=8e-5):
+    """
+    Ranking loss with Binary Cross-Entropy for weakly-supervised MIL anomaly detection.
+    Uses video-level Binary Cross-Entropy instead of top-k selection.
+    """
+    num_segments = scores.shape[0] // batch_size  # Segments per video
+    total_loss = torch.tensor(0.0, requires_grad=True, device=scores.device)
+
+    for i in range(batch_size):
+        # Extract the scores for this video
+        video_scores = scores[i * num_segments : (i + 1) * num_segments]
+        video_label = labels[i].float()  # Single video-level label
+
+        # Compute the mean score for the video
+        mean_score = video_scores.mean()
+
+        # Binary Cross-Entropy loss for the video
+        bce_loss = F.binary_cross_entropy_with_logits(mean_score, video_label)
+
+        # Sparsity and Smoothness
+        sparsity_loss = lamda_sparsity * torch.sum(torch.sigmoid(video_scores))
+        smoothness_loss = lamda_smooth * torch.sum(
+            (torch.sigmoid(video_scores[1:]) - torch.sigmoid(video_scores[:-1])) ** 2
+        )
+
+        # Combine all components
+        total_loss = total_loss + bce_loss + sparsity_loss + smoothness_loss
+
+    return total_loss / batch_size

@@ -1,0 +1,4 @@
+/venv
+/__pycache__
+/device check.py
+/unprocessed_video_data_extraction.py
